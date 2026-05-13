@@ -1,0 +1,571 @@
+/*
+  popup.css — Styling untuk Quick Session Switcher
+  ================================================
+  Chrome Extension popup memiliki lebar fixed (kita set 320px).
+  Tidak ada responsive breakpoint — popup selalu ukuran yang sama.
+
+  Keputusan teknis:
+  - Dark theme → lebih nyaman untuk developer tool
+  - JetBrains Mono → cocok untuk konteks teknis (cookies, domain)
+  - CSS Variables → mudah ganti tema tanpa edit banyak tempat
+  - Tidak menggunakan @import Google Fonts karena:
+    a) Extension popup bisa dibuka offline
+    b) CSP MV3 bisa memblokir external font request
+    → Menggunakan system monospace sebagai fallback utama
+*/
+
+/* ── CSS VARIABLES (TEMA) ─────────────────────────────────────── */
+:root {
+  --bg-base:        #0d0d0f;
+  --bg-surface:     #111114;
+  --bg-elevated:    #141418;
+  --bg-input:       #0a0a0d;
+  --bg-item:        #0e0e12;
+  --bg-item-hover:  #111118;
+  --bg-item-active: rgba(99, 102, 241, 0.05);
+
+  --border-base:    #1e1e24;
+  --border-subtle:  #1a1a20;
+  --border-faint:   #15151c;
+
+  --text-primary:   #e8e8f0;
+  --text-secondary: #c8c8e0;
+  --text-muted:     #9494b0;
+  --text-faint:     #44445a;
+  --text-ghost:     #33333f;
+  --text-dim:       #2a2a3a;
+
+  --accent:         #6366f1;
+  --accent-hover:   #7c3aed;
+  --accent-bg:      rgba(99, 102, 241, 0.1);
+  --accent-border:  rgba(99, 102, 241, 0.2);
+  --accent-shadow:  rgba(99, 102, 241, 0.25);
+
+  --success:        #10b981;
+  --success-shadow: rgba(16, 185, 129, 0.3);
+
+  --danger:         #f43f5e;
+  --danger-bg:      rgba(244, 63, 94, 0.08);
+  --danger-border:  rgba(244, 63, 94, 0.15);
+
+  --warning:        #f59e0b;
+
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code',
+               'Consolas', 'SF Mono', monospace;
+  --font-ui:   'JetBrains Mono', monospace; /* sama, untuk konsistensi */
+
+  --radius-sm:  5px;
+  --radius-md:  8px;
+  --radius-lg:  9px;
+  --radius-xl:  14px;
+
+  --transition: 0.15s ease;
+}
+
+/* ── RESET & BASE ─────────────────────────────────────────────── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/*
+  Lebar 320px adalah sweet spot untuk Chrome Extension popup.
+  Terlalu kecil → susah dibaca; terlalu besar → kurang native feel.
+  min-height 0 membiarkan popup mengecil saat session list kosong.
+*/
+body {
+  width: 320px;
+  min-height: 0;
+  background: var(--bg-surface);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-secondary);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ───────────────────────────────────────────────────── */
+#popup-header {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
+  gap: 8px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  box-shadow: 0 0 14px var(--accent-shadow);
+}
+
+.header-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.header-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.header-subtitle {
+  font-size: 9px;
+  color: var(--text-faint);
+  margin-top: 1px;
+  white-space: nowrap;
+}
+
+/*
+  Domain badge: menampilkan domain tab aktif.
+  max-width + ellipsis mencegah domain panjang merusak layout.
+*/
+.domain-badge {
+  font-size: 10px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  padding: 3px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+  flex-shrink: 0;
+}
+
+/* ── SAVE SECTION ─────────────────────────────────────────────── */
+#save-section {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.save-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-field {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-input);
+  border: 1px solid #22222c;
+  border-radius: var(--radius-md);
+  padding: 8px 11px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  outline: none;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.input-field::placeholder {
+  color: var(--text-ghost);
+}
+
+.input-field:focus {
+  border-color: var(--accent);
+  color: var(--text-secondary);
+}
+
+.btn-save {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 13px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 0 12px var(--accent-shadow);
+  transition: box-shadow var(--transition), transform var(--transition), opacity var(--transition);
+}
+
+.btn-save:hover:not(:disabled) {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-save:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Disabled state saat proses async berjalan */
+.btn-save:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── LIST HEADER ──────────────────────────────────────────────── */
+.list-header {
+  padding: 10px 16px 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-ghost);
+  font-weight: 600;
+}
+
+.session-count {
+  font-size: 9px;
+  color: var(--text-faint);
+}
+
+/* ── SESSION LIST ─────────────────────────────────────────────── */
+#session-list {
+  padding: 0 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /*
+    max-height + overflow-y: auto membatasi popup tidak terlalu panjang.
+    4 session = ~176px, lebih dari itu bisa di-scroll.
+  */
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar agar tidak terlalu mencolok */
+#session-list::-webkit-scrollbar {
+  width: 3px;
+}
+#session-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+#session-list::-webkit-scrollbar-thumb {
+  background: #222230;
+  border-radius: 2px;
+}
+
+/* ── SESSION ITEM ─────────────────────────────────────────────── */
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  background: var(--bg-item);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+  position: relative;
+  overflow: hidden;
+  /* Mencegah text terlalu panjang merusak layout */
+  min-width: 0;
+}
+
+.session-item:hover {
+  border-color: var(--accent-border);
+  background: var(--bg-item-hover);
+}
+
+/* Session yang sedang aktif (baru di-load) */
+.session-item.is-active {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: var(--bg-item-active);
+}
+
+/* Garis aksen kiri untuk session aktif */
+.session-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-hover));
+  border-radius: 2px 0 0 2px;
+}
+
+/* ── SESSION AVATAR ───────────────────────────────────────────── */
+/*
+  Avatar berupa inisial huruf pertama nama session.
+  Warna di-assign berdasarkan index % 4 di popup.js.
+*/
+.session-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.avatar-purple {
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+.avatar-green {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.avatar-amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+.avatar-rose {
+  background: rgba(244, 63, 94, 0.12);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.2);
+}
+
+/* ── SESSION INFO ─────────────────────────────────────────────── */
+.session-info {
+  flex: 1;
+  min-width: 0; /* penting agar text-overflow: ellipsis bekerja di flex child */
+}
+
+.session-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-meta {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-item.is-active .session-meta {
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+/* ── SESSION ACTION BUTTONS ───────────────────────────────────── */
+/*
+  Tombol Load & Delete disembunyikan (opacity:0) dan muncul saat hover.
+  Ini membersihkan UI saat tidak dibutuhkan.
+*/
+.session-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.session-item:hover .session-actions {
+  opacity: 1;
+}
+
+.btn-load {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background var(--transition);
+  white-space: nowrap;
+}
+
+.btn-load:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.22);
+}
+
+.btn-load:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-delete {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 7px;
+  font-size: 10px;
+  color: var(--danger);
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity var(--transition), background var(--transition);
+  line-height: 1;
+}
+
+.btn-delete:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(244, 63, 94, 0.15);
+}
+
+.btn-delete:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+/* ── EMPTY STATE ──────────────────────────────────────────────── */
+.empty-state {
+  padding: 24px 16px 20px;
+  text-align: center;
+  /* display dikendalikan JS: flex saat tampil, none saat ada session */
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-icon {
+  font-size: 28px;
+  opacity: 0.25;
+  filter: grayscale(1);
+}
+
+.empty-text {
+  font-size: 11px;
+  color: var(--text-ghost);
+  line-height: 1.7;
+}
+
+.empty-text strong {
+  color: var(--text-faint);
+  font-weight: 600;
+}
+
+/* ── FOOTER ───────────────────────────────────────────────────── */
+#popup-footer {
+  padding: 9px 16px;
+  border-top: 1px solid var(--border-faint);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0d0d10;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Status indicator dot */
+.status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  transition: background var(--transition), box-shadow var(--transition);
+}
+
+.dot-ready {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+  animation: pulseDot 2.5s ease-in-out infinite;
+}
+
+.dot-loading {
+  background: var(--warning);
+  box-shadow: 0 0 6px var(--warning);
+  animation: pulseDot 0.8s ease-in-out infinite;
+}
+
+.dot-error {
+  background: var(--danger);
+  box-shadow: 0 0 6px var(--danger);
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+.status-text {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.version-tag {
+  font-size: 9px;
+  color: #22222e;
+}
+
+/* ── TOAST NOTIFICATION ───────────────────────────────────────── */
+/*
+  Toast menggunakan position:fixed agar selalu tampil di atas konten,
+  bahkan saat session-list di-scroll.
+*/
+.toast {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none; /* tidak mengganggu klik di bawahnya */
+  z-index: 999;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast-success {
+  background: var(--success);
+  color: white;
+  box-shadow: 0 4px 16px var(--success-shadow);
+}
+
+.toast-error {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 4px 16px rgba(244, 63, 94, 0.35);
+}
+
+.toast-hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+  pointer-events: none;
+}
+
+.toast-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

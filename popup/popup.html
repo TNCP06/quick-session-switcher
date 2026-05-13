@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <!--
+    Popup Chrome Extension tidak membutuhkan viewport meta seperti website biasa,
+    tapi tetap disertakan untuk konsistensi rendering.
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Session Switcher</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+    STRUKTUR POPUP:
+    1. #popup-header  — branding + domain aktif
+    2. #save-section  — input nama + tombol Save
+    3. #session-list  — daftar session (auto-generated oleh popup.js)
+    4. #empty-state   — ditampilkan jika belum ada session
+    5. #popup-footer  — status storage + versi
+    6. #toast         — notifikasi singkat (muncul/hilang via JS)
+  ============================================================ -->
+
+  <div id="app">
+
+    <!-- ── HEADER ─────────────────────────────────────────────── -->
+    <header id="popup-header">
+      <div class="header-left">
+        <div class="logo-mark">⚡</div>
+        <div class="header-titles">
+          <span class="header-title">Session Switcher</span>
+          <span class="header-subtitle">quick-session-switcher</span>
+        </div>
+      </div>
+      <!--
+        #current-domain diisi oleh popup.js saat popup dibuka,
+        berdasarkan URL tab aktif yang sedang dibuka user.
+      -->
+      <span id="current-domain" class="domain-badge">memuat…</span>
+    </header>
+
+    <!-- ── SAVE SECTION ───────────────────────────────────────── -->
+    <section id="save-section">
+      <div class="save-row">
+        <input
+          type="text"
+          id="session-name-input"
+          class="input-field"
+          placeholder="Nama session baru…"
+          maxlength="40"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <!--
+          Tombol Save memanggil handleSave() di popup.js.
+          Disabled state dikendalikan JS selama proses async berlangsung.
+        -->
+        <button id="btn-save" class="btn-save">+ Save</button>
+      </div>
+    </section>
+
+    <!-- ── SESSION LIST ───────────────────────────────────────── -->
+    <div class="list-header">
+      <span class="section-label">Saved Sessions</span>
+      <span id="session-count" class="session-count">0 sessions</span>
+    </div>
+
+    <!--
+      #session-list dikosongkan dan diisi ulang setiap kali
+      renderSessionList() dipanggil di popup.js.
+      Setiap item session di-generate sebagai elemen DOM dinamis.
+    -->
+    <div id="session-list">
+      <!-- Session items di-inject oleh popup.js -->
+    </div>
+
+    <!-- ── EMPTY STATE ────────────────────────────────────────── -->
+    <!--
+      Ditampilkan (display:flex) atau disembunyikan (display:none)
+      oleh popup.js tergantung apakah ada session tersimpan.
+    -->
+    <div id="empty-state" class="empty-state" style="display: none;">
+      <div class="empty-icon">🗄️</div>
+      <p class="empty-text">
+        Belum ada session tersimpan.<br />
+        Buka halaman yang ingin disimpan,<br />
+        lalu klik <strong>+ Save</strong> di atas.
+      </p>
+    </div>
+
+    <!-- ── FOOTER ─────────────────────────────────────────────── -->
+    <footer id="popup-footer">
+      <div class="footer-left">
+        <!--
+          #status-dot berubah warna via class:
+          - .dot-ready  → hijau (normal)
+          - .dot-loading → kuning (proses berlangsung)
+          - .dot-error   → merah (ada error)
+        -->
+        <div id="status-dot" class="status-dot dot-ready"></div>
+        <span id="status-text" class="status-text">Storage ready</span>
+      </div>
+      <span class="version-tag">v1.0.0</span>
+    </footer>
+
+  </div><!-- /#app -->
+
+  <!-- ── TOAST NOTIFICATION ─────────────────────────────────── -->
+  <!--
+    Toast muncul di atas segalanya via position:fixed.
+    Kontennya diisi dan animasinya dikendalikan sepenuhnya oleh JS.
+  -->
+  <div id="toast" class="toast toast-hidden" aria-live="polite"></div>
+
+  <!--
+    popup.js dimuat di sini (bukan di <head>) agar DOM sudah siap
+    saat script dijalankan, tanpa perlu DOMContentLoaded wrapper.
+
+    PENTING: Chrome MV3 melarang inline script di HTML karena CSP.
+    Semua JS harus ada di file .js terpisah.
+  -->
+  <script src="popup.js"></script>
+
+</body>
+</html>
