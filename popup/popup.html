@@ -2,25 +2,11 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <!--
-    Popup Chrome Extension tidak membutuhkan viewport meta seperti website biasa,
-    tapi tetap disertakan untuk konsistensi rendering.
-  -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Session Switcher</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
-
-  <!-- ============================================================
-    STRUKTUR POPUP:
-    1. #popup-header  — branding + domain aktif
-    2. #save-section  — input nama + tombol Save
-    3. #session-list  — daftar session (auto-generated oleh popup.js)
-    4. #empty-state   — ditampilkan jika belum ada session
-    5. #popup-footer  — status storage + versi
-    6. #toast         — notifikasi singkat (muncul/hilang via JS)
-  ============================================================ -->
 
   <div id="app">
 
@@ -33,10 +19,6 @@
           <span class="header-subtitle">quick-session-switcher</span>
         </div>
       </div>
-      <!--
-        #current-domain diisi oleh popup.js saat popup dibuka,
-        berdasarkan URL tab aktif yang sedang dibuka user.
-      -->
       <span id="current-domain" class="domain-badge">memuat…</span>
     </header>
 
@@ -59,68 +41,66 @@
       </div>
     </section>
 
-    <!-- ── SESSION LIST ───────────────────────────────────────── -->
-    <div class="list-header">
-      <span class="section-label">Saved Sessions</span>
-      <span id="session-count" class="session-count">0 sessions</span>
-    </div>
-
-    <!--
-      #session-list dikosongkan dan diisi ulang setiap kali
-      renderSessionList() dipanggil di popup.js.
-      Setiap item session di-generate sebagai elemen DOM dinamis.
-    -->
-    <div id="session-list-outer" class="session-list-outer">
-      <div id="session-list">
-        <!-- Session items di-inject oleh popup.js -->
+    <!-- ── MAIN VIEW: grid kartu domain ──────────────────────── -->
+    <div id="view-main">
+      <div class="list-header">
+        <span class="section-label">Saved Sessions</span>
+        <span id="session-count" class="session-count">0 sessions</span>
       </div>
+
+      <div id="session-grid-outer" class="session-grid-outer">
+        <div id="session-grid">
+          <!-- Domain cards di-inject oleh popup.js -->
+        </div>
+      </div>
+
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <div class="empty-icon">🗄️</div>
+        <p class="empty-text">
+          Belum ada session tersimpan.<br />
+          Buka halaman yang ingin disimpan,<br />
+          lalu klik <strong>+ Save</strong> di atas.
+        </p>
+      </div>
+
     </div>
 
-    <!-- ── EMPTY STATE ────────────────────────────────────────── -->
-    <!--
-      Ditampilkan (display:flex) atau disembunyikan (display:none)
-      oleh popup.js tergantung apakah ada session tersimpan.
-    -->
-    <div id="empty-state" class="empty-state" style="display: none;">
-      <div class="empty-icon">🗄️</div>
-      <p class="empty-text">
-        Belum ada session tersimpan.<br />
-        Buka halaman yang ingin disimpan,<br />
-        lalu klik <strong>+ Save</strong> di atas.
-      </p>
+    <!-- ── DOMAIN DETAIL VIEW ─────────────────────────────────── -->
+    <div id="view-domain" style="display: none;">
+      <div class="detail-header">
+        <button id="btn-back" class="btn-back">← Back</button>
+        <div class="detail-site">
+          <div id="detail-favicon-wrap" class="detail-favicon-wrap"></div>
+          <span id="detail-domain-name" class="detail-domain-name"></span>
+        </div>
+      </div>
+      <div id="detail-session-list" class="detail-session-list">
+        <!-- Session items untuk domain ini di-inject oleh popup.js -->
+      </div>
     </div>
 
     <!-- ── FOOTER ─────────────────────────────────────────────── -->
     <footer id="popup-footer">
       <div class="footer-left">
-        <!--
-          #status-dot berubah warna via class:
-          - .dot-ready  → hijau (normal)
-          - .dot-loading → kuning (proses berlangsung)
-          - .dot-error   → merah (ada error)
-        -->
         <div id="status-dot" class="status-dot dot-ready"></div>
         <span id="status-text" class="status-text">Storage ready</span>
       </div>
-      <span class="version-tag">v1.0.0</span>
+      <div class="footer-right">
+        <button id="btn-manage" class="btn-manage" title="Hapus session">
+          <svg width="11" height="13" viewBox="0 0 11 13" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M3.5 1.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            <path d="M1 4h9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            <path d="M2 4l.75 7.5h5.5L9 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <span class="version-tag">v1.0.0</span>
+      </div>
     </footer>
 
   </div><!-- /#app -->
 
-  <!-- ── TOAST NOTIFICATION ─────────────────────────────────── -->
-  <!--
-    Toast muncul di atas segalanya via position:fixed.
-    Kontennya diisi dan animasinya dikendalikan sepenuhnya oleh JS.
-  -->
   <div id="toast" class="toast toast-hidden" aria-live="polite"></div>
 
-  <!--
-    popup.js dimuat di sini (bukan di <head>) agar DOM sudah siap
-    saat script dijalankan, tanpa perlu DOMContentLoaded wrapper.
-
-    PENTING: Chrome MV3 melarang inline script di HTML karena CSP.
-    Semua JS harus ada di file .js terpisah.
-  -->
   <script src="popup.js"></script>
 
 </body>

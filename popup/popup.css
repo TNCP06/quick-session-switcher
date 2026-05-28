@@ -1,17 +1,8 @@
 /*
   popup.css — Styling untuk Quick Session Switcher
   ================================================
-  Chrome Extension popup memiliki lebar fixed (kita set 320px).
+  Chrome Extension popup memiliki lebar fixed (320px).
   Tidak ada responsive breakpoint — popup selalu ukuran yang sama.
-
-  Keputusan teknis:
-  - Dark theme → lebih nyaman untuk developer tool
-  - JetBrains Mono → cocok untuk konteks teknis (cookies, domain)
-  - CSS Variables → mudah ganti tema tanpa edit banyak tempat
-  - Tidak menggunakan @import Google Fonts karena:
-    a) Extension popup bisa dibuka offline
-    b) CSP MV3 bisa memblokir external font request
-    → Menggunakan system monospace sebagai fallback utama
 */
 
 /* ── CSS VARIABLES (TEMA) ─────────────────────────────────────── */
@@ -52,7 +43,6 @@
 
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code',
                'Consolas', 'SF Mono', monospace;
-  --font-ui:   'JetBrains Mono', monospace; /* sama, untuk konsistensi */
 
   --radius-sm:  5px;
   --radius-md:  8px;
@@ -69,16 +59,11 @@
   box-sizing: border-box;
 }
 
-/*
-  Lebar 320px adalah sweet spot untuk Chrome Extension popup.
-  Terlalu kecil → susah dibaca; terlalu besar → kurang native feel.
-  min-height 0 membiarkan popup mengecil saat session list kosong.
-*/
 body {
   width: 320px;
   min-height: 0;
   background: var(--bg-surface);
-  font-family: var(--font-ui);
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-secondary);
   -webkit-font-smoothing: antialiased;
@@ -142,10 +127,6 @@ body {
   white-space: nowrap;
 }
 
-/*
-  Domain badge: menampilkan domain tab aktif.
-  max-width + ellipsis mencegah domain panjang merusak layout.
-*/
 .domain-badge {
   font-size: 10px;
   color: var(--accent);
@@ -220,7 +201,6 @@ body {
   transform: translateY(0);
 }
 
-/* Disabled state saat proses async berjalan */
 .btn-save:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -279,17 +259,17 @@ body {
   color: var(--text-faint);
 }
 
-/* ── SESSION LIST ─────────────────────────────────────────────── */
+/* ── SESSION GRID ─────────────────────────────────────────────── */
 
 /*
-  Wrapper for the scroll-fade overlay. position:relative lets the ::after
-  sit on top of the scrollable list without being clipped by it.
+  Wrapper untuk scroll-fade overlay. position:relative agar ::after
+  bisa duduk di atas scrollable grid tanpa ikut ter-clip.
 */
-.session-list-outer {
+.session-grid-outer {
   position: relative;
 }
 
-.session-list-outer::after {
+.session-grid-outer::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -302,37 +282,269 @@ body {
   transition: opacity 0.25s ease;
 }
 
-/* Shown by JS when list is scrollable and not at the bottom */
-.session-list-outer.has-overflow::after {
+.session-grid-outer.has-overflow::after {
   opacity: 1;
 }
 
-#session-list {
-  padding: 0 10px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  /* ~6 sessions visible before scrolling */
-  max-height: 280px;
+#session-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 6px 10px 10px;
+  max-height: 260px;
   overflow-y: auto;
 }
 
-/* Custom scrollbar */
-#session-list::-webkit-scrollbar {
+#session-grid::-webkit-scrollbar {
   width: 4px;
 }
-#session-list::-webkit-scrollbar-track {
+#session-grid::-webkit-scrollbar-track {
   background: transparent;
 }
-#session-list::-webkit-scrollbar-thumb {
+#session-grid::-webkit-scrollbar-thumb {
   background: #252530;
   border-radius: 2px;
 }
-#session-list::-webkit-scrollbar-thumb:hover {
+#session-grid::-webkit-scrollbar-thumb:hover {
   background: #30304a;
 }
 
-/* ── SESSION ITEM ─────────────────────────────────────────────── */
+/* ── SITE CARD ────────────────────────────────────────────────── */
+.site-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 6px 8px;
+  background: var(--bg-item);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition),
+              box-shadow var(--transition);
+  text-align: center;
+  min-height: 76px;
+  overflow: hidden;
+}
+
+.site-card:hover {
+  border-color: var(--accent-border);
+  background: var(--bg-item-hover);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.site-card.is-active {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: var(--bg-item-active);
+}
+
+/* ── FAVICON ──────────────────────────────────────────────────── */
+.favicon-wrap {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.site-favicon {
+  display: block;
+  object-fit: contain;
+}
+
+/* Fallback letter shown when Google Favicon Service fails (e.g. offline or unknown domain). */
+.favicon-fallback {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+/* ── CARD LABELS ──────────────────────────────────────────────── */
+.card-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.2;
+  padding: 0 2px;
+}
+
+.card-meta {
+  font-size: 8px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Badge jumlah session untuk domain dengan banyak session */
+.multi-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--accent);
+  color: white;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  line-height: 1.5;
+  min-width: 15px;
+  text-align: center;
+}
+
+/* ── TRASH ICON BUTTON (footer) ───────────────────────────────── */
+.btn-manage {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color var(--transition), background var(--transition);
+}
+
+.btn-manage:hover {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+/* Aktif saat delete mode menyala */
+.btn-manage.is-active {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+/*
+  Delete mode: kartu diberi tint merah saat hover dan × kecil muncul
+  di sudut kanan atas. Hanya kartu single-session (bukan .is-multi)
+  yang langsung dihapus saat diklik — kartu multi-session tetap masuk
+  ke detail view agar user bisa pilih session mana yang dihapus.
+*/
+#session-grid.delete-mode .site-card {
+  border-color: rgba(244, 63, 94, 0.18);
+  cursor: pointer;
+}
+
+#session-grid.delete-mode .site-card:hover {
+  border-color: rgba(244, 63, 94, 0.55);
+  background: rgba(244, 63, 94, 0.06);
+  box-shadow: 0 2px 12px rgba(244, 63, 94, 0.12);
+}
+
+#session-grid.delete-mode .site-card:not(.is-multi)::after {
+  content: '✕';
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  font-size: 9px;
+  color: var(--danger);
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+#session-grid.delete-mode .site-card:not(.is-multi):hover::after {
+  opacity: 1;
+}
+
+/* ── DOMAIN DETAIL VIEW ───────────────────────────────────────── */
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.btn-back {
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 4px 9px;
+  flex-shrink: 0;
+  transition: color var(--transition), background var(--transition),
+              border-color var(--transition);
+  white-space: nowrap;
+}
+
+.btn-back:hover {
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border-color: var(--accent-border);
+}
+
+.detail-site {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-favicon-wrap {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.detail-domain-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── DETAIL SESSION LIST ──────────────────────────────────────── */
+.detail-session-list {
+  padding: 6px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.detail-session-list::-webkit-scrollbar {
+  width: 4px;
+}
+.detail-session-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.detail-session-list::-webkit-scrollbar-thumb {
+  background: #252530;
+  border-radius: 2px;
+}
+.detail-session-list::-webkit-scrollbar-thumb:hover {
+  background: #30304a;
+}
+
+/* ── SESSION ITEM (dipakai di detail view) ────────────────────── */
 .session-item {
   display: flex;
   align-items: center;
@@ -345,7 +557,6 @@ body {
   transition: border-color var(--transition), background var(--transition);
   position: relative;
   overflow: hidden;
-  /* Mencegah text terlalu panjang merusak layout */
   min-width: 0;
 }
 
@@ -354,13 +565,11 @@ body {
   background: var(--bg-item-hover);
 }
 
-/* Session yang sedang aktif (baru di-load) */
 .session-item.is-active {
   border-color: rgba(99, 102, 241, 0.4);
   background: var(--bg-item-active);
 }
 
-/* Garis aksen kiri untuk session aktif */
 .session-item.is-active::before {
   content: '';
   position: absolute;
@@ -372,11 +581,7 @@ body {
   border-radius: 2px 0 0 2px;
 }
 
-/* ── SESSION AVATAR ───────────────────────────────────────────── */
-/*
-  Avatar berupa inisial huruf pertama nama session.
-  Warna di-assign berdasarkan index % 4 di popup.js.
-*/
+/* ── SESSION AVATAR (dipakai di detail view) ──────────────────── */
 .session-avatar {
   width: 26px;
   height: 26px;
@@ -410,10 +615,10 @@ body {
   border: 1px solid rgba(244, 63, 94, 0.2);
 }
 
-/* ── SESSION INFO ─────────────────────────────────────────────── */
+/* ── SESSION INFO (dipakai di detail view) ────────────────────── */
 .session-info {
   flex: 1;
-  min-width: 0; /* penting agar text-overflow: ellipsis bekerja di flex child */
+  min-width: 0;
 }
 
 .session-name {
@@ -439,11 +644,7 @@ body {
   opacity: 0.7;
 }
 
-/* ── SESSION ACTION BUTTONS ───────────────────────────────────── */
-/*
-  Tombol Load & Delete disembunyikan (opacity:0) dan muncul saat hover.
-  Ini membersihkan UI saat tidak dibutuhkan.
-*/
+/* ── SESSION ACTION BUTTONS (dipakai di detail view) ──────────── */
 .session-actions {
   display: flex;
   gap: 4px;
@@ -506,7 +707,6 @@ body {
 .empty-state {
   padding: 24px 16px 20px;
   text-align: center;
-  /* display dikendalikan JS: flex saat tampil, none saat ada session */
   flex-direction: column;
   align-items: center;
   gap: 8px;
@@ -545,7 +745,6 @@ body {
   gap: 6px;
 }
 
-/* Status indicator dot */
 .status-dot {
   width: 5px;
   height: 5px;
@@ -575,6 +774,12 @@ body {
   50%       { opacity: 0.35; }
 }
 
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .status-text {
   font-size: 9px;
   color: var(--text-dim);
@@ -586,10 +791,6 @@ body {
 }
 
 /* ── TOAST NOTIFICATION ───────────────────────────────────────── */
-/*
-  Toast menggunakan position:fixed agar selalu tampil di atas konten,
-  bahkan saat session-list di-scroll.
-*/
 .toast {
   position: fixed;
   bottom: 14px;
@@ -600,7 +801,7 @@ body {
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
-  pointer-events: none; /* tidak mengganggu klik di bawahnya */
+  pointer-events: none;
   z-index: 999;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
