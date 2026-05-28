@@ -179,16 +179,42 @@ Rules:
 - `node_modules/` and `*.zip`/`*.crx` build artifacts are already in `.gitignore` — keep them out.
 - Remove `console.debug` calls before merging. Permanent `console.log` with a module prefix is fine to keep.
 
+### Git Execution Rules
+
+Claude executes git commands directly rather than listing them for the user to run manually. The one exception is `git commit`.
+
+**Claude runs autonomously** (no user action needed):
+- Read-only: `git fetch`, `git status`, `git log`, `git diff`, `git branch`
+- Sync: `git fetch origin main:main` (session-start main update), `git pull`
+- State changes: `git stash`, `git checkout`, `git switch`, branch create/delete, `git push`, `gh pr create`
+
+**Claude NEVER runs `git commit`** — always write the exact commit command to `PENDING_COMMIT.md` and let the user run it. Reason: `git commit` via Claude adds a "Co-Authored-By: Claude" line that appears in public GitHub history.
+
+**Propose before executing** — the Collaboration Style review (clearly good / questionable / clearly bad) applies to git operations too. State-changing operations that alter branch context or history (checkout to a different branch, stash + rebranch, force-push) are "questionable" and must be proposed with a 1–2 sentence rationale before Claude runs them. Read-only and simple sync operations (fetch, pull, push a branch the user just asked to push) are "clearly good" and can run without asking.
+
 ### Pending Changes Log
 
-**At the start of every session**, always run `git fetch origin`, `git status`, and `git log --oneline -5`, then:
+**At the start of every session**, run the following in order:
 
-1. **Pull check** — if the working tree is clean (no uncommitted changes), run `git pull` automatically to stay in sync with the remote. If the working tree is dirty, skip the pull and warn: "ada perubahan belum di-commit, selesaikan dulu sebelum pull."
-2. **PENDING_COMMIT.md check** — cross-check the file against `git log`:
+```bash
+git fetch origin
+git status
+git log --oneline -5
+git log --oneline origin/main -3  # compare remote main
+```
+
+Then execute these steps **automatically** — do not wait for the user to ask:
+
+1. **Sync local `main` with remote** — always check if `origin/main` is ahead of local `main`, even when on a feature branch. If so, update local main immediately using `git fetch origin main:main` (safe: no checkout, no working-tree impact). This keeps the local reference accurate without disturbing uncommitted work. Only skip if local `main` has diverged (non-fast-forward) — in that case warn: "main lokal diverged, perlu manual check."
+
+2. **Pull current branch** — if the current branch is clean (no uncommitted changes) AND behind its upstream, run `git pull` automatically. If the working tree is dirty, skip the pull and warn: "ada perubahan belum di-commit, selesaikan dulu sebelum pull."
+
+3. **PENDING_COMMIT.md check** — cross-check the file against `git log`:
    - Uncommitted changes still exist → previous session was never committed. Decide:
      - **Unrelated new work** → suggest committing/pushing first before continuing
      - **Related or overlapping work** → fold new changes into the existing pending entry, update the file
    - Pending commit already appears in `git log` → clear `PENDING_COMMIT.md` and start fresh
+   - Working tree is on a branch that has already been merged into `origin/main` → offer to move uncommitted work onto a new branch from main (`git stash → git checkout -b <new-branch> main → git stash pop`)
 
 **After every session where code is modified**, always overwrite `PENDING_COMMIT.md` with:
 
