@@ -8,6 +8,17 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+---
+
+## [1.1.0] — 2026-05-29
+
+### Added
+- Grid card layout for the session list, with a detail view for selected sessions
+- Google Favicon Service integration — session cards show site brand icons for each domain
+- Delete mode toggle via trash icon in the footer; individual delete buttons appear per card
+- `Alt+G` keyboard shortcut to open the extension popup (via `commands` in manifest)
+- Scroll fade overlay on the session list for visual depth cue
+
 ### Fixed
 - `handleLoad` in popup now shows an error toast with the failed count when cookie injection partially fails, instead of always reporting success
 - `getExtraDomains` in background now filters the primary domain from its own return value, preventing redundant double-queries on save and double-clears on load
@@ -31,5 +42,6 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Incognito window support via `incognito: "spanning"` in manifest
 - Silent-drop verification via `chrome.cookies.get()` after every `chrome.cookies.set()`
 
-[Unreleased]: https://github.com/TNCP06/quick-session-switcher/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/TNCP06/quick-session-switcher/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/TNCP06/quick-session-switcher/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/TNCP06/quick-session-switcher/releases/tag/v1.0.0
