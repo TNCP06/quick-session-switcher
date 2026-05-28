@@ -10,3 +10,6 @@ Thumbs.db
 *.zip
 *.crx
 node_modules/
+
+# Local session working notes — not project history
+PENDING_COMMIT.md
