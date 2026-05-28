@@ -44,6 +44,7 @@ const $ = {
   currentDomain:    document.getElementById('current-domain'),
   sessionNameInput: document.getElementById('session-name-input'),
   btnSave:          document.getElementById('btn-save'),
+  btnClearCookies:  document.getElementById('btn-clear-cookies'),
   sessionList:      document.getElementById('session-list'),
   sessionCount:     document.getElementById('session-count'),
   emptyState:       document.getElementById('empty-state'),
@@ -85,6 +86,7 @@ async function init() {
 
     // 3. Event listeners
     $.btnSave.addEventListener('click', handleSave);
+    $.btnClearCookies.addEventListener('click', handleClearCookies);
 
     // Tekan Enter di input = klik Save
     $.sessionNameInput.addEventListener('keydown', (e) => {
@@ -222,6 +224,33 @@ async function handleDelete(sessionId, sessionName) {
   } catch (err) {
     console.error('[SessionSwitcher] handleDelete error:', err);
     showToast('Gagal menghapus session', 'error');
+  } finally {
+    setLoadingState(false);
+  }
+}
+
+/**
+ * handleClearCookies() — Hapus semua cookies domain aktif dan reload tab.
+ */
+async function handleClearCookies() {
+  setLoadingState(true);
+  setStatus('loading', 'Menghapus cookies…');
+
+  try {
+    const response = await sendMessage({ action: 'CLEAR_CURRENT_COOKIES' });
+
+    if (response.success) {
+      const count = response.data?.cleared ?? 0;
+      showToast(`${count} cookies dihapus`, 'success');
+      setStatus('ready', 'Cookies cleared');
+    } else {
+      throw new Error(response.error || 'Gagal menghapus cookies');
+    }
+
+  } catch (err) {
+    console.error('[SessionSwitcher] handleClearCookies error:', err);
+    showToast('Gagal menghapus cookies', 'error');
+    setStatus('error', err.message);
   } finally {
     setLoadingState(false);
   }
@@ -444,9 +473,9 @@ function getCurrentDomain() {
  * Semua .btn-load dan .btn-delete juga di-disable untuk konsistensi.
  */
 function setLoadingState(isLoading) {
-  $.btnSave.disabled = isLoading;
+  $.btnSave.disabled         = isLoading;
+  $.btnClearCookies.disabled = isLoading;
 
-  // Disable semua action button yang ada di list saat ini
   document.querySelectorAll('.btn-load, .btn-delete').forEach((btn) => {
     btn.disabled = isLoading;
   });
