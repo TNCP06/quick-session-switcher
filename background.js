@@ -35,6 +35,9 @@ async function handleMessage(message, sendResponse) {
       case 'GET_ALL_SESSIONS':
         await handleGetAllSessions(sendResponse);
         break;
+      case 'CLEAR_CURRENT_COOKIES':
+        await handleClearCurrentCookies(sendResponse);
+        break;
       default:
         sendResponse({ success: false, error: `Action tidak dikenal: ${action}` });
     }
@@ -134,30 +137,27 @@ async function handleLoadSession(payload, sendResponse) {
     return;
   }
 
-  const tab = await getActiveTab();
-  if (!tab || !tab.url) {
-    sendResponse({ success: false, error: 'Tidak bisa membaca tab aktif' });
-    return;
-  }
+  const targetUrl = `https://${session.domain}/`;
 
-  // FIX: Resolve storeId secara eksplisit — jangan andalkan tab.cookieStoreId
-  // karena Brave mengembalikan undefined meski dengan permission cookies.
-  // Incognito store di Chromium-based browser selalu "1", normal selalu "0".
-  const storeId = resolveStoreId(tab);
+  // Buka tab baru ke domain session
+  const newTab = await createTab(targetUrl);
+  const storeId = resolveStoreId(newTab);
 
   console.log(
-    `[Background] handleLoadSession: tabId=${tab.id}, incognito=${tab.incognito}, ` +
-    `rawCookieStoreId="${tab.cookieStoreId}", resolvedStoreId="${storeId}"`
+    `[Background] handleLoadSession (new tab): tabId=${newTab.id}, ` +
+    `incognito=${newTab.incognito}, storeId="${storeId}"`
   );
 
+  // Hapus cookies lama untuk semua domain terkait session
   const allDomains = [session.domain, ...(session.extraDomains || [])];
   for (const d of allDomains) {
     await cookieManager.clearDomainCookies(d, storeId);
   }
 
+  // Inject cookies session ke store tab baru
   const result = await cookieManager.injectCookies(
     session.cookies,
-    tab.url,
+    targetUrl,
     storeId
   );
 
@@ -165,8 +165,30 @@ async function handleLoadSession(payload, sendResponse) {
     console.warn(`[Background] ${result.failed} cookies gagal di-inject:`, result.errors);
   }
 
-  await reloadTab(tab.id);
+  // Reload tab baru agar halaman membaca cookies yang baru di-inject
+  await reloadTab(newTab.id);
+
   sendResponse({ success: true, data: { injected: result.injected, failed: result.failed } });
+}
+
+async function handleClearCurrentCookies(sendResponse) {
+  const tab = await getActiveTab();
+  if (!tab || !tab.url) {
+    sendResponse({ success: false, error: 'Tidak bisa membaca tab aktif' });
+    return;
+  }
+
+  const domain = cookieManager.getDomainFromUrl(tab.url);
+  if (!domain) {
+    sendResponse({ success: false, error: 'URL tab tidak valid' });
+    return;
+  }
+
+  const storeId = resolveStoreId(tab);
+  const cleared = await cookieManager.clearDomainCookies(domain, storeId);
+
+  await reloadTab(tab.id);
+  sendResponse({ success: true, data: { cleared } });
 }
 
 async function handleDeleteSession(payload, sendResponse) {
@@ -240,6 +262,21 @@ function getActiveTab() {
         `[Background] getActiveTab: id=${tab.id}, incognito=${tab.incognito}, ` +
         `cookieStoreId="${tab.cookieStoreId}", url=${tab.url}`
       );
+      resolve(tab);
+    });
+  });
+}
+
+/**
+ * createTab(url) — Buka tab baru dan kembalikan tab object-nya.
+ */
+function createTab(url) {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.create({ url, active: true }, (tab) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
       resolve(tab);
     });
   });
