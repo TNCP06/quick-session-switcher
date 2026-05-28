@@ -35,6 +35,41 @@ const AVATAR_COLORS = ['avatar-purple', 'avatar-green', 'avatar-amber', 'avatar-
 /** Durasi toast tampil sebelum hilang (ms) */
 const TOAST_DURATION = 2200;
 
+/**
+ * Brand colors for known sites.
+ * bg/fg/border use rgba/hex; letter is what appears in the avatar.
+ * Suffix matching handles subdomains — exact keys are checked first.
+ */
+const SITE_ICONS = {
+  'chatgpt.com':       { bg: '#10a37f', fg: '#fff', border: 'rgba(16,163,127,0.45)',  letter: 'G' },
+  'openai.com':        { bg: '#10a37f', fg: '#fff', border: 'rgba(16,163,127,0.45)',  letter: 'O' },
+  'claude.ai':         { bg: '#cc6c20', fg: '#fff', border: 'rgba(204,108,32,0.45)',  letter: 'C' },
+  'anthropic.com':     { bg: '#cc6c20', fg: '#fff', border: 'rgba(204,108,32,0.45)',  letter: 'A' },
+  'netflix.com':       { bg: '#e50914', fg: '#fff', border: 'rgba(229,9,20,0.45)',    letter: 'N' },
+  'youtube.com':       { bg: '#ff0000', fg: '#fff', border: 'rgba(255,0,0,0.45)',     letter: 'Y' },
+  'github.com':        { bg: '#24292f', fg: '#fff', border: 'rgba(110,118,129,0.45)', letter: 'G' },
+  'spotify.com':       { bg: '#1db954', fg: '#fff', border: 'rgba(29,185,84,0.45)',   letter: 'S' },
+  'x.com':             { bg: '#0f0f0f', fg: '#fff', border: 'rgba(90,90,90,0.45)',    letter: 'X' },
+  'twitter.com':       { bg: '#1da1f2', fg: '#fff', border: 'rgba(29,161,242,0.45)',  letter: 'T' },
+  'mail.google.com':   { bg: '#ea4335', fg: '#fff', border: 'rgba(234,67,53,0.45)',   letter: 'M' },
+  'gmail.com':         { bg: '#ea4335', fg: '#fff', border: 'rgba(234,67,53,0.45)',   letter: 'M' },
+  'google.com':        { bg: '#4285f4', fg: '#fff', border: 'rgba(66,133,244,0.45)',  letter: 'G' },
+  'facebook.com':      { bg: '#1877f2', fg: '#fff', border: 'rgba(24,119,242,0.45)',  letter: 'F' },
+  'instagram.com':     { bg: '#e1306c', fg: '#fff', border: 'rgba(225,48,108,0.45)',  letter: 'I' },
+  'linkedin.com':      { bg: '#0a66c2', fg: '#fff', border: 'rgba(10,102,194,0.45)',  letter: 'L' },
+  'notion.so':         { bg: '#191919', fg: '#fff', border: 'rgba(90,90,90,0.35)',    letter: 'N' },
+  'discord.com':       { bg: '#5865f2', fg: '#fff', border: 'rgba(88,101,242,0.45)',  letter: 'D' },
+  'figma.com':         { bg: '#f24e1e', fg: '#fff', border: 'rgba(242,78,30,0.45)',   letter: 'F' },
+  'slack.com':         { bg: '#4a154b', fg: '#ecb22e', border: 'rgba(236,178,46,0.3)', letter: 'S' },
+  'reddit.com':        { bg: '#ff4500', fg: '#fff', border: 'rgba(255,69,0,0.45)',    letter: 'R' },
+  'twitch.tv':         { bg: '#9146ff', fg: '#fff', border: 'rgba(145,70,255,0.45)',  letter: 'T' },
+  'amazon.com':        { bg: '#131921', fg: '#ff9900', border: 'rgba(255,153,0,0.35)', letter: 'A' },
+  'dropbox.com':       { bg: '#0061ff', fg: '#fff', border: 'rgba(0,97,255,0.45)',    letter: 'D' },
+  'vercel.com':        { bg: '#000000', fg: '#fff', border: 'rgba(90,90,90,0.4)',     letter: 'V' },
+  'supabase.com':      { bg: '#3fcf8e', fg: '#1c1c1c', border: 'rgba(63,207,142,0.4)', letter: 'S' },
+  'linear.app':        { bg: '#5e6ad2', fg: '#fff', border: 'rgba(94,106,210,0.45)',  letter: 'L' },
+};
+
 /* ── REFERENSI ELEMEN DOM ─────────────────────────────────────── */
 /*
   Semua elemen di-cache di awal agar tidak perlu querySelector
@@ -46,6 +81,7 @@ const $ = {
   btnSave:          document.getElementById('btn-save'),
   btnClearCookies:  document.getElementById('btn-clear-cookies'),
   sessionList:      document.getElementById('session-list'),
+  sessionListOuter: document.getElementById('session-list-outer'),
   sessionCount:     document.getElementById('session-count'),
   emptyState:       document.getElementById('empty-state'),
   statusDot:        document.getElementById('status-dot'),
@@ -92,6 +128,9 @@ async function init() {
     $.sessionNameInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') handleSave();
     });
+
+    // Update scroll fade when user scrolls the list
+    $.sessionList.addEventListener('scroll', updateScrollFade);
 
     setStatus('ready', 'Storage ready');
 
@@ -325,6 +364,9 @@ function renderSessionList(sessions) {
     const item = createSessionItem(sessionId, sessionData, index);
     $.sessionList.appendChild(item);
   });
+
+  // Defer so layout is complete before measuring scrollHeight
+  requestAnimationFrame(updateScrollFade);
 }
 
 /**
@@ -342,10 +384,10 @@ function renderSessionList(sessions) {
  */
 function createSessionItem(sessionId, data, index) {
   const isActive = sessionId === activeSessionId;
-  const avatarColor = AVATAR_COLORS[index % AVATAR_COLORS.length];
   const initial = (data.name || '?')[0].toUpperCase();
   const timeAgo = formatTimeAgo(data.savedAt);
   const cookieLabel = `${data.cookieCount || 0} cookies`;
+  const siteIcon = getSiteIcon(data.domain);
 
   // ── Wrapper item ──
   const item = document.createElement('div');
@@ -354,8 +396,18 @@ function createSessionItem(sessionId, data, index) {
 
   // ── Avatar ──
   const avatar = document.createElement('div');
-  avatar.className = `session-avatar ${avatarColor}`;
-  avatar.textContent = initial;
+  if (siteIcon) {
+    avatar.className = 'session-avatar';
+    avatar.style.background = siteIcon.bg;
+    avatar.style.color = siteIcon.fg;
+    avatar.style.border = `1px solid ${siteIcon.border}`;
+    // Two-char letters (e.g. future use) get a smaller font
+    if (siteIcon.letter.length > 1) avatar.style.fontSize = '8px';
+    avatar.textContent = siteIcon.letter;
+  } else {
+    avatar.className = `session-avatar ${AVATAR_COLORS[index % AVATAR_COLORS.length]}`;
+    avatar.textContent = initial;
+  }
 
   // ── Info ──
   const info = document.createElement('div');
@@ -404,6 +456,38 @@ function createSessionItem(sessionId, data, index) {
   item.appendChild(actions);
 
   return item;
+}
+
+/* ================================================================
+   HELPER: SITE ICONS & SCROLL FADE
+================================================================ */
+
+/**
+ * getSiteIcon(domain) — Returns brand icon config for a known domain, or null.
+ *
+ * Checks exact match first, then suffix match so subdomains like
+ * "app.slack.com" resolve to the "slack.com" entry.
+ */
+function getSiteIcon(domain) {
+  if (!domain) return null;
+  if (SITE_ICONS[domain]) return SITE_ICONS[domain];
+  for (const key of Object.keys(SITE_ICONS)) {
+    if (domain.endsWith('.' + key)) return SITE_ICONS[key];
+  }
+  return null;
+}
+
+/**
+ * updateScrollFade() — Toggles .has-overflow on the session list wrapper.
+ *
+ * Shows a fade gradient at the bottom when there is more content to scroll to,
+ * and hides it once the user has scrolled to the bottom.
+ */
+function updateScrollFade() {
+  const list = $.sessionList;
+  const isScrollable = list.scrollHeight > list.clientHeight;
+  const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 2;
+  $.sessionListOuter.classList.toggle('has-overflow', isScrollable && !atBottom);
 }
 
 /* ================================================================
