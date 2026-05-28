@@ -59,6 +59,11 @@ async function handleSaveSession(payload, sendResponse) {
     return;
   }
 
+  if (name.trim().length > 40) {
+    sendResponse({ success: false, error: 'Nama session maksimal 40 karakter' });
+    return;
+  }
+
   const tab = await getActiveTab();
   if (!tab || !tab.url) {
     sendResponse({ success: false, error: 'Tidak bisa membaca tab aktif' });
@@ -111,16 +116,16 @@ async function handleSaveSession(payload, sendResponse) {
 }
 
 function getExtraDomains(domain) {
+  let extras = [];
   if (domain.includes('youtube.com') || domain.includes('google.com')) {
-    return ['google.com', 'accounts.google.com', 'youtube.com'];
+    extras = ['google.com', 'accounts.google.com', 'youtube.com'];
+  } else if (domain.includes('openai.com') || domain.includes('chatgpt.com')) {
+    extras = ['openai.com', 'auth.openai.com'];
+  } else if (domain.includes('gmail.com')) {
+    extras = ['google.com', 'accounts.google.com', 'mail.google.com'];
   }
-  if (domain.includes('openai.com') || domain.includes('chatgpt.com')) {
-    return ['openai.com', 'auth.openai.com'];
-  }
-  if (domain.includes('gmail.com')) {
-    return ['google.com', 'accounts.google.com', 'mail.google.com'];
-  }
-  return [];
+  // Exclude the primary domain to avoid redundant double-queries and double-clears
+  return extras.filter(d => d !== domain);
 }
 
 async function handleLoadSession(payload, sendResponse) {

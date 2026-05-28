@@ -161,7 +161,6 @@ async function injectCookies(cookies, tabUrl, storeId) {
 
   for (const cookie of cookies) {
     if (shouldSkipCookie(cookie.name)) {
-      console.debug(`[CookieManager] Skip "${cookie.name}" (non-portable)`);
       skipped++;
       continue;
     }

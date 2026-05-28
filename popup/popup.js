@@ -172,7 +172,12 @@ async function handleLoad(sessionId) {
     if (response.success) {
       activeSessionId = sessionId;
       await refreshSessionList(); // re-render agar badge .is-active terupdate
-      showToast('✓ Session berhasil dimuat', 'success');
+      const failed = response.data?.failed ?? 0;
+      if (failed > 0) {
+        showToast(`Session dimuat, ${failed} cookies gagal`, 'error');
+      } else {
+        showToast('✓ Session berhasil dimuat', 'success');
+      }
       setStatus('ready', 'Session aktif');
 
       /*
