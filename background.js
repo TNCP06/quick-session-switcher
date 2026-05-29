@@ -35,6 +35,9 @@ async function handleMessage(message, sendResponse) {
       case 'GET_ALL_SESSIONS':
         await handleGetAllSessions(sendResponse);
         break;
+      case 'GET_STORAGE_INFO':
+        await handleGetStorageInfo(sendResponse);
+        break;
       case 'CLEAR_CURRENT_COOKIES':
         await handleClearCurrentCookies(sendResponse);
         break;
@@ -63,6 +66,8 @@ async function handleSaveSession(payload, sendResponse) {
     sendResponse({ success: false, error: 'Nama session maksimal 40 karakter' });
     return;
   }
+
+  const existingSessions = await storageManager.getAllSessions();
 
   const tab = await getActiveTab();
   if (!tab || !tab.url) {
@@ -101,6 +106,7 @@ async function handleSaveSession(payload, sendResponse) {
     return;
   }
 
+  const isDuplicate = Object.values(existingSessions).some(s => s.name === name.trim());
   const sessionId   = `session_${Date.now()}`;
   const sessionData = {
     name:        name.trim(),
@@ -112,7 +118,10 @@ async function handleSaveSession(payload, sendResponse) {
   };
 
   await storageManager.saveSession(sessionId, sessionData);
-  sendResponse({ success: true });
+  sendResponse({
+    success: true,
+    warning: isDuplicate ? 'Nama session ini sudah ada' : undefined,
+  });
 }
 
 function getExtraDomains(domain) {
@@ -209,6 +218,11 @@ async function handleDeleteSession(payload, sendResponse) {
 async function handleGetAllSessions(sendResponse) {
   const sessions = await storageManager.getAllSessions();
   sendResponse({ success: true, data: sessions });
+}
+
+async function handleGetStorageInfo(sendResponse) {
+  const info = await storageManager.getStorageInfo();
+  sendResponse({ success: true, data: info });
 }
 
 /* ================================================================

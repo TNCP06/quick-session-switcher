@@ -790,6 +790,11 @@ body {
   color: #22222e;
 }
 
+.storage-warning {
+  font-size: 9px;
+  color: var(--warning);
+}
+
 /* ── TOAST NOTIFICATION ───────────────────────────────────────── */
 .toast {
   position: fixed;
@@ -816,6 +821,12 @@ body {
   background: var(--danger);
   color: white;
   box-shadow: 0 4px 16px rgba(244, 63, 94, 0.35);
+}
+
+.toast-warning {
+  background: var(--warning);
+  color: white;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
 }
 
 .toast-hidden {

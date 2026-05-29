@@ -2,8 +2,12 @@
 
 /* ── KONSTANTA ────────────────────────────────────────────────── */
 
-const AVATAR_COLORS = ['avatar-purple', 'avatar-green', 'avatar-amber', 'avatar-rose'];
-const TOAST_DURATION = 2200;
+const AVATAR_COLORS          = ['avatar-purple', 'avatar-green', 'avatar-amber', 'avatar-rose'];
+const TOAST_DURATION          = 2200;
+const ACTIVE_SESSION_KEY      = 'activeSessionId';
+const STORAGE_WARN_THRESHOLD  = 80;
+const SW_RETRY_COUNT          = 2;
+const SW_RETRY_DELAY_MS       = 300;
 
 /* ── REFERENSI ELEMEN DOM ─────────────────────────────────────── */
 const $ = {
@@ -27,6 +31,9 @@ const $ = {
   detailFaviconWrap: document.getElementById('detail-favicon-wrap'),
   detailDomainName:  document.getElementById('detail-domain-name'),
   detailSessionList: document.getElementById('detail-session-list'),
+  // Footer
+  versionTag:        document.getElementById('version-tag'),
+  storageWarning:    document.getElementById('storage-warning'),
 };
 
 /* ── STATE LOKAL ──────────────────────────────────────────────── */
@@ -45,6 +52,9 @@ async function init() {
     const domain = await getCurrentDomain();
     $.currentDomain.textContent = domain || '—';
 
+    // Restore active session badge across popup open/close cycles
+    activeSessionId = await getActiveSessionFromStorage();
+
     await refreshSessionGrid();
 
     $.btnSave.addEventListener('click', handleSave);
@@ -55,6 +65,16 @@ async function init() {
     $.btnBack.addEventListener('click', hideDomainView);
     $.btnManage.addEventListener('click', toggleDeleteMode);
     $.sessionGrid.addEventListener('scroll', updateScrollFade);
+
+    // Inject version from manifest so popup.html never needs manual bumping
+    $.versionTag.textContent = 'v' + chrome.runtime.getManifest().version;
+
+    // Warn in footer if storage usage exceeds threshold
+    const storageRes = await sendMessage({ action: 'GET_STORAGE_INFO' });
+    if (storageRes.success && storageRes.data.usedPercent > STORAGE_WARN_THRESHOLD) {
+      $.storageWarning.textContent = `⚠ ${storageRes.data.usedPercent}%`;
+      $.storageWarning.style.display = 'inline';
+    }
 
     setStatus('ready', 'Storage ready');
   } catch (err) {
@@ -87,7 +107,11 @@ async function handleSave() {
     if (response.success) {
       $.sessionNameInput.value = '';
       await refreshSessionGrid();
-      showToast(`✓ "${name}" tersimpan`, 'success');
+      if (response.warning) {
+        showToast(`⚠ ${response.warning}`, 'warning');
+      } else {
+        showToast(`✓ "${name}" tersimpan`, 'success');
+      }
       setStatus('ready', 'Storage ready');
     } else {
       throw new Error(response.error || 'Gagal menyimpan');
@@ -110,6 +134,7 @@ async function handleLoad(sessionId) {
 
     if (response.success) {
       activeSessionId = sessionId;
+      await setActiveSessionInStorage(sessionId);
       await refreshSessionGrid();
       const failed = response.data?.failed ?? 0;
       if (failed > 0) {
@@ -137,7 +162,10 @@ async function handleDelete(sessionId, sessionName) {
     const response = await sendMessage({ action: 'DELETE_SESSION', payload: { sessionId } });
 
     if (response.success) {
-      if (activeSessionId === sessionId) activeSessionId = null;
+      if (activeSessionId === sessionId) {
+        activeSessionId = null;
+        await clearActiveSessionFromStorage();
+      }
 
       await refreshSessionGrid();
       showToast(`"${sessionName}" dihapus`, 'success');
@@ -469,16 +497,30 @@ function updateScrollFade() {
    HELPER: KOMUNIKASI BACKGROUND
 ================================================================ */
 
-function sendMessage(message) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-        return;
-      }
-      resolve(response);
-    });
-  });
+/*
+  MV3 Service Workers can be suspended and may not be awake when the
+  popup first opens, causing sendMessage to fail with "Could not establish
+  connection." We retry up to SW_RETRY_COUNT times with a short delay
+  before surfacing the error to the caller.
+*/
+async function sendMessage(message) {
+  for (let attempt = 0; attempt <= SW_RETRY_COUNT; attempt++) {
+    try {
+      return await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(message, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+            return;
+          }
+          resolve(response);
+        });
+      });
+    } catch (err) {
+      const isConnectionErr = err.message && err.message.includes('Could not establish connection');
+      if (!isConnectionErr || attempt === SW_RETRY_COUNT) throw err;
+      await new Promise(r => setTimeout(r, SW_RETRY_DELAY_MS));
+    }
+  }
 }
 
 /* ================================================================
@@ -529,6 +571,35 @@ function showToast(message, type = 'success') {
   showToast.timer = setTimeout(() => {
     $.toast.className = 'toast toast-hidden';
   }, TOAST_DURATION);
+}
+
+/* ================================================================
+   HELPER: SESSION STORAGE (activeSessionId persistence)
+================================================================ */
+
+/*
+  chrome.storage.session persists within a browser session (survives popup
+  close/open) but clears automatically when the browser closes.
+  Requires Chrome 102+.
+*/
+function getActiveSessionFromStorage() {
+  return new Promise((resolve) => {
+    chrome.storage.session.get(ACTIVE_SESSION_KEY, (result) => {
+      resolve(result[ACTIVE_SESSION_KEY] || null);
+    });
+  });
+}
+
+function setActiveSessionInStorage(sessionId) {
+  return new Promise((resolve) => {
+    chrome.storage.session.set({ [ACTIVE_SESSION_KEY]: sessionId }, resolve);
+  });
+}
+
+function clearActiveSessionFromStorage() {
+  return new Promise((resolve) => {
+    chrome.storage.session.remove(ACTIVE_SESSION_KEY, resolve);
+  });
 }
 
 /* ================================================================
