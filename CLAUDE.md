@@ -1,5 +1,25 @@
 # Quick Session Switcher — Project Rules
 
+## Session Start (run every session, no exceptions)
+
+```
+git fetch origin
+git status
+git log --oneline -5
+git log --oneline origin/main -3
+```
+
+Then automatically:
+1. If `origin/main` is ahead of local `main` → `git fetch origin main:main`
+2. If current branch is clean and behind upstream → `git pull`
+3. Check `PENDING_COMMIT.md` vs `git log`:
+   - Pending commit already in log → clear the file
+   - Pending commit not yet committed → fold or propose committing first
+
+**Claude NEVER runs `git commit`** — write the command to `PENDING_COMMIT.md` and let the user run it. A hook will block any attempt to run `git commit` directly.
+
+---
+
 ## Collaboration Style
 
 Before implementing any request, evaluate whether it's the right call:
