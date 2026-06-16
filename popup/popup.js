@@ -535,7 +535,7 @@ function getCurrentDomain() {
         return;
       }
       try {
-        resolve(new URL(tabs[0].url).hostname);
+        resolve(new URL(tabs[0].url).host);
       } catch {
         resolve(null);
       }

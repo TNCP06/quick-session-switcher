@@ -20,6 +20,18 @@ Then automatically:
 
 ---
 
+## Documentation Syncing (Continuous Requirement)
+
+Whenever structural, logical, or flow changes are made during a session, the AI **MUST** evaluate and update the documentation in the `docs/` folder accordingly:
+1. **Business Flow changes** (new user actions, modified system behaviors) → Update `docs/BUSINESS_FLOW.md`.
+2. **Architecture changes** (new components, altered API interactions, new storage mechanisms) → Update `docs/ARCHITECTURE.md`.
+3. **File changes** (new files created, files renamed, or core responsibilities altered) → Update `docs/CODE_MAP.md`.
+4. **General changes** (setup, installation, or user-facing overview) → Update `README.md`.
+
+Never leave the documentation out of sync with the codebase.
+
+---
+
 ## Collaboration Style
 
 Before implementing any request, evaluate whether it's the right call:

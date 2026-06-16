@@ -111,6 +111,7 @@ async function handleSaveSession(payload, sendResponse) {
   const sessionData = {
     name:        name.trim(),
     domain,
+    url:         tab.url,
     extraDomains,
     savedAt:     Date.now(),
     cookieCount: uniqueCookies.length,
@@ -151,7 +152,7 @@ async function handleLoadSession(payload, sendResponse) {
     return;
   }
 
-  const targetUrl = `https://${session.domain}/`;
+  const targetUrl = session.url || `https://${session.domain}/`;
 
   // Buka tab baru ke domain session
   const newTab = await createTab(targetUrl);
