@@ -21,11 +21,21 @@ quick-session-switcher/
 │   ├── cookieManager.js   ← chrome.cookies API operations
 │   └── storageManager.js  ← chrome.storage.local operations
 │
+├── docs/                  ← Comprehensive Documentation
+│   ├── BUSINESS_FLOW.md   ← Alur bisnis pengguna vs sistem
+│   ├── ARCHITECTURE.md    ← Prinsip arsitektur Manifest V3
+│   └── CODE_MAP.md        ← Pemetaan peran file
+│
 └── icons/
     ├── icon16.png
     ├── icon48.png
     └── icon128.png
 ```
+
+> **Catatan Dokumentasi:** Untuk pemahaman kode yang lebih mendalam, kami telah menyediakan rangkaian dokumentasi lengkap:
+> - 📄 **[Alur Bisnis (Business Flow)](docs/BUSINESS_FLOW.md)**
+> - 🏛️ **[Arsitektur Aplikasi (Architecture)](docs/ARCHITECTURE.md)**
+> - 🗺️ **[Peta Kode (Code Map)](docs/CODE_MAP.md)**
 
 ---
 

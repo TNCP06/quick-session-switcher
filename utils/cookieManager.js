@@ -30,7 +30,8 @@ function shouldSkipCookie(name) {
  */
 async function captureSessionCookies(domain) {
   try {
-    const cleanDomain = domain.startsWith('.') ? domain.slice(1) : domain;
+    const baseDomain = domain.includes(':') ? domain.split(':')[0] : domain;
+    const cleanDomain = baseDomain.startsWith('.') ? baseDomain.slice(1) : baseDomain;
     const withoutWww  = cleanDomain.replace(/^www\./, '');
 
     // Query semua variasi domain — Chrome/Brave matching tidak konsisten
@@ -119,7 +120,8 @@ async function restoreSessionCookies(domain, cookies, tabUrl, storeId) {
 
 async function clearDomainCookies(domain, storeId) {
   try {
-    const cleanDomain = domain.startsWith('.') ? domain.slice(1) : domain;
+    const baseDomain = domain.includes(':') ? domain.split(':')[0] : domain;
+    const cleanDomain = baseDomain.startsWith('.') ? baseDomain.slice(1) : baseDomain;
     const query = { domain: cleanDomain };
     if (storeId) query.storeId = storeId;
 
@@ -275,7 +277,7 @@ function normalizeSameSite(value) {
 
 function getDomainFromUrl(url) {
   try {
-    return new URL(url).hostname;
+    return new URL(url).host;
   } catch {
     return null;
   }
