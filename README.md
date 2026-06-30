@@ -1,4 +1,4 @@
-# Quick Session Switcher — Chrome Extension
+# Profile Switcher — Chrome Extension
 
 Quickly switch between accounts via cookies snapshot.  
 All data is stored locally in the browser — no backend required.
@@ -8,7 +8,7 @@ All data is stored locally in the browser — no backend required.
 ## Folder Structure
 
 ```
-quick-session-switcher/
+profile-switcher/
 ├── manifest.json          ← Extension config (incognito: spanning)
 ├── background.js          ← Service Worker (core logic)
 │
@@ -46,7 +46,7 @@ quick-session-switcher/
 1. Go to `chrome://extensions`
 2. Enable **"Developer mode"** (top-right toggle)
 3. Click **"Load unpacked"**
-4. Select the `quick-session-switcher` folder (the one containing `manifest.json`)
+4. Select the `profile-switcher` folder (the one containing `manifest.json`)
 5. The extension will appear in the Chrome toolbar
 
 ### Brave

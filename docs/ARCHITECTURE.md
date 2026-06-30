@@ -1,6 +1,6 @@
 # Arsitektur Aplikasi
 
-Ekstensi **Quick Session Switcher** dibangun menggunakan ekosistem dan spesifikasi **Chrome Extension Manifest V3**. 
+Ekstensi **Profile Switcher** dibangun menggunakan ekosistem dan spesifikasi **Chrome Extension Manifest V3**. 
 
 Mengingat arsitektur Manifest V3 memiliki model keamanan dan manajemen memori yang ketat, aplikasi memisahkan eksekusi tanggung jawab (separation of concerns) ke dalam tiga lapisan atau konteks utama yang diisolasi:
 

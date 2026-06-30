@@ -8,6 +8,13 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Renamed the project from "Quick Session Switcher" to "Profile Switcher" (display name, popup header, docs, and repository)
+- Relabeled the **Clear Cookies** action to **Log Out** with matching status and toast messages
+
+### Fixed
+- `handleClearCurrentCookies` in background now also clears auth subdomains via `getExtraDomains()` — previously log out left Google/YouTube/ChatGPT logged in because their session cookies live on `accounts.google.com` / `auth.openai.com`, which were never cleared
+
 ---
 
 ## [1.1.0] — 2026-05-29
@@ -42,6 +49,6 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Incognito window support via `incognito: "spanning"` in manifest
 - Silent-drop verification via `chrome.cookies.get()` after every `chrome.cookies.set()`
 
-[Unreleased]: https://github.com/TNCP06/quick-session-switcher/compare/v1.1.0...HEAD
-[1.1.0]: https://github.com/TNCP06/quick-session-switcher/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/TNCP06/quick-session-switcher/releases/tag/v1.0.0
+[Unreleased]: https://github.com/TNCP06/profile-switcher/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/TNCP06/profile-switcher/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/TNCP06/profile-switcher/releases/tag/v1.0.0

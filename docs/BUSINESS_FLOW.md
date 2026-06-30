@@ -1,6 +1,6 @@
 # Alur Bisnis (Business Flow)
 
-Dokumen ini menjelaskan alur kerja utama dari ekstensi Quick Session Switcher dari perspektif pengguna dan proses sistem di belakangnya.
+Dokumen ini menjelaskan alur kerja utama dari ekstensi Profile Switcher dari perspektif pengguna dan proses sistem di belakangnya.
 
 ## 1. Penyimpanan Sesi (Save Session)
 
@@ -8,7 +8,7 @@ Dokumen ini menjelaskan alur kerja utama dari ekstensi Quick Session Switcher da
 
 **Alur Pengguna:**
 1. Pengguna membuka sebuah *website* dan melakukan *login* ke akun A.
-2. Pengguna membuka ekstensi Quick Session Switcher melalui ikon *toolbar* browser.
+2. Pengguna membuka ekstensi Profile Switcher melalui ikon *toolbar* browser.
 3. Ekstensi otomatis mendeteksi URL dan *host* domain (termasuk *port*).
 4. Pengguna memasukkan nama sesi (misalnya: "Akun Utama" atau "Dev Port 3000") dan menekan tombol **+ Save**.
 5. Sesi muncul dalam daftar sesi yang tersimpan di antarmuka ekstensi.

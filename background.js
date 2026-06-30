@@ -200,7 +200,15 @@ async function handleClearCurrentCookies(sendResponse) {
   }
 
   const storeId = resolveStoreId(tab);
-  const cleared = await cookieManager.clearDomainCookies(domain, storeId);
+
+  // Log out harus membersihkan domain utama + subdomain auth (accounts.google.com,
+  // auth.openai.com, dst). Tanpa ini, situs yang menyimpan session di subdomain
+  // auth tetap login meski cookie domain utama sudah dihapus.
+  const allDomains = [domain, ...getExtraDomains(domain)];
+  let cleared = 0;
+  for (const d of allDomains) {
+    cleared += await cookieManager.clearDomainCookies(d, storeId);
+  }
 
   await reloadTab(tab.id);
   sendResponse({ success: true, data: { cleared } });

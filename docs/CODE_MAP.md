@@ -3,7 +3,7 @@
 Struktur direktori serta penjelasan fungsionalitas dan peran dari setiap fail di dalam basis kode proyek.
 
 ```text
-quick-session-switcher/
+profile-switcher/
 ├── manifest.json          ← Deklarasi pengaturan ekstensi
 ├── background.js          ← Skrip utama Service Worker
 │
