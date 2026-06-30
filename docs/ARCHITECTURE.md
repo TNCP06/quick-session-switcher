@@ -1,26 +1,26 @@
-# Arsitektur Aplikasi
+# Architecture
 
-Ekstensi **Profile Switcher** dibangun menggunakan ekosistem dan spesifikasi **Chrome Extension Manifest V3**. 
+The **Profile Switcher** extension is built on the **Chrome Extension Manifest V3** ecosystem and specification.
 
-Mengingat arsitektur Manifest V3 memiliki model keamanan dan manajemen memori yang ketat, aplikasi memisahkan eksekusi tanggung jawab (separation of concerns) ke dalam tiga lapisan atau konteks utama yang diisolasi:
+Because Manifest V3 enforces a strict security and memory-management model, the application separates concerns into three isolated execution layers (contexts):
 
-## 1. Konteks Antarmuka Pengguna / UI (`popup/`)
+## 1. User Interface Context (`popup/`)
 
-- Merupakan antarmuka *front-end* yang dilihat oleh pengguna saat mengklik ikon ekstensi.
-- Bertugas untuk menangani seluruh *DOM manipulation*, mengikat pendengar peristiwa (*event listeners*) untuk tombol maupun input teks, serta menggambarkan elemen UI pada halaman (daftar *session*, state *loading*, pesan peringatan, dll).
-- Dibatasi di area *sandboxed* khusus ekstensi. Konteks *script* dan elemen ini akan **dihancurkan dan dimatikan total** oleh *browser* setiap kali pengguna mengklik di luar jedela *popup* (menutup *popup*). Oleh karena itu, modul ini tidak boleh menyimpan *state* yang krusial yang bersifat asinkron panjang secara mandiri.
-- **Batasan Akses:** Konteks Popup *tidak diizinkan* memanggil API esensial Chrome seperti `chrome.cookies` secara langsung demi mempertahankan kestabilan logika. Modul ini diwajibkan menjembatani permohonan ke Service Worker lewat pesan menggunakan API `chrome.runtime.sendMessage`.
+- The *front-end* interface the user sees when clicking the extension icon.
+- Responsible for all *DOM manipulation*, binding *event listeners* for buttons and text inputs, and rendering UI elements (session list, *loading* states, warning messages, etc.).
+- Confined to the extension's *sandboxed* area. This script and its elements are **fully destroyed** by the *browser* every time the user clicks outside the *popup* window (closing the popup). For this reason, this module must not hold critical, long-lived asynchronous *state* on its own.
+- **Access boundary:** The Popup context is *not allowed* to call essential Chrome APIs such as `chrome.cookies` directly, in order to keep the logic stable. It must bridge requests to the Service Worker through `chrome.runtime.sendMessage`.
 
-## 2. Konteks Pekerja Latar Belakang / Service Worker (`background.js`)
+## 2. Background / Service Worker Context (`background.js`)
 
-- Mengambil peran sebagai "otak" (*core logic controller*) dari ekstensi yang hidup di belakang layar.
-- Mengadopsi prinsip *Event-Driven*: *Service worker* ini otomatis terlelap (sleep) apabila sedang tidak ada aktivitas, dan hanya akan terbangun secara pasif (*wake-up*) bilamana dipicu oleh pemicu kejadian seperti *chrome.runtime.onMessage*.
-- Menjadi **satu-satunya tempat** di mana panggilan menuju dan dari browser *engine API* (`chrome.cookies`, `chrome.storage`, manipulasi `chrome.tabs`) beroperasi. Hal ini memusatkan pengawasan aliran data (*data flow centralization*).
-- Menangani alur proses sistem yang rumit, seperti pembukaan tab ke profil (*normal/incognito*), lalu mendistribusikan injeksi *cookies* ke masing-masing *CookieStore* secara aman tanpa membeku (*non-blocking/async*).
+- Acts as the "brain" (*core logic controller*) of the extension, running behind the scenes.
+- Follows an *Event-Driven* model: the *Service Worker* sleeps automatically when idle and only *wakes up* passively when triggered by an event such as `chrome.runtime.onMessage`.
+- The **single place** where calls to and from the browser *engine APIs* (`chrome.cookies`, `chrome.storage`, `chrome.tabs`) operate. This centralizes the *data flow*.
+- Handles complex system flows, such as opening a tab to a profile (*normal/incognito*) and then distributing cookie injection into each *CookieStore* safely and *non-blocking/async*.
 
-## 3. Konteks Modul Abstraksi / Utility (`utils/`)
+## 3. Abstraction / Utility Context (`utils/`)
 
-Ekstensi memecah tugas-tugas *background* spesifik ke beberapa modul skrip utilitas. Tujuannya adalah mereduksi kompleksitas (spaghetti code) pada `background.js` agar hanya terfokus sebagai "Pengendali Aksi" (Controller).
+The extension splits specific *background* tasks into utility script modules. The goal is to reduce complexity (spaghetti code) in `background.js` so it stays focused as the "Action Controller".
 
-- **Cookie Manager (`cookieManager.js`):** Pustaka pendukung khusus manipulasi `chrome.cookies`. Ia merangkum seluruh kompleksitas, seperti ekstraksi, penyingkiran atribut *host/secure prefix*, pengabaian filter-filter domain *host-only*, dan juga secara dinamis mengubah konfigurasi keamanan jika disuntikkan antara HTTP vs HTTPS. Modul ini mencegah ketidaksempurnaan `chrome.cookies` API yang terkadang sering kali gagal/menolak pemasangan atribut akibat restriksi *cookie RFC strict constraints*.
-- **Storage Manager (`storageManager.js`):** Lapisan pelindung yang beroperasi di depan API native `chrome.storage.local`. Modul ini mengonversikan interaksi asinkron murni agar sejalan dengan pola baca-ubah-tulis (*read-modify-write pattern*). Menggunakan model abstraksi ini memastikan konsistensi agar modifikasi sebagian variabel dalam skema lokal ekstensi tidak secara brutal menimpa/terhapus (*overwritten*) secara tidak disengaja.
+- **Cookie Manager (`cookieManager.js`):** A dedicated helper library for `chrome.cookies` manipulation. It encapsulates all the complexity — extraction, *host/secure prefix* attribute handling, ignoring *host-only* domain filters, and dynamically adjusting the security configuration when injecting over HTTP vs HTTPS. This module works around `chrome.cookies` API quirks that sometimes reject attribute writes due to *strict RFC cookie constraints*.
+- **Storage Manager (`storageManager.js`):** A protective layer in front of the native `chrome.storage.local` API. It wraps the purely asynchronous interaction in a *read-modify-write pattern*. This abstraction guarantees consistency so that modifying part of the local schema does not accidentally overwrite or delete other data.

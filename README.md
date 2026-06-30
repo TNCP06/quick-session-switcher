@@ -22,9 +22,9 @@ profile-switcher/
 │   └── storageManager.js  ← chrome.storage.local operations
 │
 ├── docs/                  ← Comprehensive Documentation
-│   ├── BUSINESS_FLOW.md   ← Alur bisnis pengguna vs sistem
-│   ├── ARCHITECTURE.md    ← Prinsip arsitektur Manifest V3
-│   └── CODE_MAP.md        ← Pemetaan peran file
+│   ├── BUSINESS_FLOW.md   ← User vs system business flow
+│   ├── ARCHITECTURE.md    ← Manifest V3 architecture principles
+│   └── CODE_MAP.md        ← File responsibility map
 │
 └── icons/
     ├── icon16.png
@@ -32,10 +32,10 @@ profile-switcher/
     └── icon128.png
 ```
 
-> **Catatan Dokumentasi:** Untuk pemahaman kode yang lebih mendalam, kami telah menyediakan rangkaian dokumentasi lengkap:
-> - 📄 **[Alur Bisnis (Business Flow)](docs/BUSINESS_FLOW.md)**
-> - 🏛️ **[Arsitektur Aplikasi (Architecture)](docs/ARCHITECTURE.md)**
-> - 🗺️ **[Peta Kode (Code Map)](docs/CODE_MAP.md)**
+> **Documentation note:** For a deeper understanding of the code, a full set of documentation is provided:
+> - 📄 **[Business Flow](docs/BUSINESS_FLOW.md)**
+> - 🏛️ **[Architecture](docs/ARCHITECTURE.md)**
+> - 🗺️ **[Code Map](docs/CODE_MAP.md)**
 
 ---
 
