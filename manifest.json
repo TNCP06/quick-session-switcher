@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Quick Session Switcher",
-  "version": "1.1.0",
-  "description": "Berpindah antar akun dengan cepat via cookies snapshot. Semua data tersimpan lokal di browser.",
+  "name": "Profile Switcher",
+  "version": "1.2.0",
+  "description": "Switch between accounts instantly via a cookies snapshot. All data is stored locally in your browser.",
 
   "permissions": [
     "cookies",
@@ -35,7 +35,7 @@
       "suggested_key": {
         "default": "Alt+G"
       },
-      "description": "Buka Quick Session Switcher"
+      "description": "Buka Profile Switcher"
     }
   },
 

@@ -198,21 +198,25 @@ async function handleDelete(sessionId, sessionName) {
 
 async function handleClearCookies() {
   setLoadingState(true);
-  setStatus('loading', 'Menghapus cookies…');
+  setStatus('loading', 'Sedang log out…');
 
   try {
     const response = await sendMessage({ action: 'CLEAR_CURRENT_COOKIES' });
 
     if (response.success) {
       const count = response.data?.cleared ?? 0;
-      showToast(`${count} cookies dihapus`, 'success');
-      setStatus('ready', 'Cookies cleared');
+      if (count > 0) {
+        showToast('✓ Berhasil log out', 'success');
+      } else {
+        showToast('Tidak ada sesi aktif untuk di-log out', 'warning');
+      }
+      setStatus('ready', 'Logged out');
     } else {
-      throw new Error(response.error || 'Gagal menghapus cookies');
+      throw new Error(response.error || 'Gagal log out');
     }
   } catch (err) {
     console.error('[SessionSwitcher] handleClearCookies error:', err);
-    showToast('Gagal menghapus cookies', 'error');
+    showToast('Gagal log out', 'error');
     setStatus('error', err.message);
   } finally {
     setLoadingState(false);

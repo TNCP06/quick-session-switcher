@@ -1,4 +1,4 @@
-# Quick Session Switcher — Project Rules
+# Profile Switcher — Project Rules
 
 ## Session Start (run every session, no exceptions)
 
@@ -16,7 +16,7 @@ Then automatically:
    - Pending commit already in log → clear the file
    - Pending commit not yet committed → fold or propose committing first
 
-**Claude NEVER runs `git commit`** — write the command to `PENDING_COMMIT.md` and let the user run it. A hook will block any attempt to run `git commit` directly.
+**Claude MAY run `git commit` and `git push`** — but the commit message must NEVER include a `Co-Authored-By` trailer (so attribution to Claude never lands in public history). A hook blocks any commit that carries one.
 
 ---
 
@@ -213,14 +213,14 @@ Rules:
 
 ### Git Execution Rules
 
-Claude executes git commands directly rather than listing them for the user to run manually. The one exception is `git commit`.
+Claude executes git commands directly rather than listing them for the user to run manually.
 
 **Claude runs autonomously** (no user action needed):
 - Read-only: `git fetch`, `git status`, `git log`, `git diff`, `git branch`
 - Sync: `git fetch origin main:main` (session-start main update), `git pull`
-- State changes: `git stash`, `git checkout`, `git switch`, branch create/delete, `git push`, `gh pr create`
+- State changes: `git stash`, `git checkout`, `git switch`, branch create/delete, `git commit`, `git push`, `gh pr create`
 
-**Claude NEVER runs `git commit`** — always write the exact commit command to `PENDING_COMMIT.md` and let the user run it. Reason: `git commit` via Claude adds a "Co-Authored-By: Claude" line that appears in public GitHub history.
+**Co-Authored-By is forbidden** — Claude may run `git commit` directly, but the commit message must NEVER contain a `Co-Authored-By` trailer (it would attribute Claude in public GitHub history). A PreToolUse hook blocks any commit that carries one. When committing, do not add the trailer the default harness instructions would otherwise append.
 
 **Propose before executing** — the Collaboration Style review (clearly good / questionable / clearly bad) applies to git operations too. State-changing operations that alter branch context or history (checkout to a different branch, stash + rebranch, force-push) are "questionable" and must be proposed with a 1–2 sentence rationale before Claude runs them. Read-only and simple sync operations (fetch, pull, push a branch the user just asked to push) are "clearly good" and can run without asking.
 
@@ -248,7 +248,7 @@ Then execute these steps **automatically** — do not wait for the user to ask:
    - Pending commit already appears in `git log` → clear `PENDING_COMMIT.md` and start fresh
    - Working tree is on a branch that has already been merged into `origin/main` → offer to move uncommitted work onto a new branch from main (`git stash → git checkout -b <new-branch> main → git stash pop`)
 
-**After every session where code is modified**, always overwrite `PENDING_COMMIT.md` with:
+**After every session where code is modified**, prefer to commit and push the work directly (no `Co-Authored-By` trailer). Only when a commit is intentionally deferred — e.g. the user wants to review first — fall back to overwriting `PENDING_COMMIT.md` with:
 
 - **Status** — current git state (branch, uncommitted files)
 - **Branch** — suggested branch name following the naming conventions above

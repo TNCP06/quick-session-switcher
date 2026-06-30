@@ -1,55 +1,55 @@
-# Peta Kode (Code Map)
+# Code Map
 
-Struktur direktori serta penjelasan fungsionalitas dan peran dari setiap fail di dalam basis kode proyek.
+The directory structure plus an explanation of the role and responsibility of each file in the codebase.
 
 ```text
-quick-session-switcher/
-├── manifest.json          ← Deklarasi pengaturan ekstensi
-├── background.js          ← Skrip utama Service Worker
+profile-switcher/
+├── manifest.json          ← Extension configuration declaration
+├── background.js          ← Main Service Worker script
 │
 ├── popup/
-│   ├── popup.html         ← Struktur DOM/Kerangka dasar UI
-│   ├── popup.css          ← Pemformatan perwajahan (Styles)
-│   └── popup.js           ← Skrip pengontrol antar-muka UI
+│   ├── popup.html         ← DOM structure / base UI skeleton
+│   ├── popup.css          ← Visual styling (styles)
+│   └── popup.js           ← UI controller script
 │
 ├── utils/
-│   ├── cookieManager.js   ← Logika ekstraksi & penanganan Cookies
-│   └── storageManager.js  ← Logika sinkronisasi/baca-tulis Storage API
+│   ├── cookieManager.js   ← Cookie extraction & handling logic
+│   └── storageManager.js  ← Storage API read/write logic
 │
 └── docs/
-    ├── BUSINESS_FLOW.md   ← Alur bisnis pengguna vs sistem
-    ├── ARCHITECTURE.md    ← Prinsip arsitektural Manifest V3
-    └── CODE_MAP.md        ← Pemetaan peranan fail (file ini)
+    ├── BUSINESS_FLOW.md   ← User vs system business flow
+    ├── ARCHITECTURE.md    ← Manifest V3 architecture principles
+    └── CODE_MAP.md        ← File responsibility map (this file)
 ```
 
-## Penjelasan Detil Tiap-Tiap Berkas (*Files*)
+## Per-File Details
 
-### Direktori Utama (Root)
+### Root Directory
 - **`manifest.json`**
-  Berkas kunci (*manifest*) sebagai pengenal bagi Google Chrome bahwa berkas ini adalah sebuah ekstensi. Ia memberitahukan deskripsi dan versi rilis, mendefinisikan *permissions* izin keleluasaan apa saja yang diminta ekstensi (contoh: `cookies`, `storage`, `tabs`), menautkan titik temu file eksekusi *Service Worker* kepada `background.js`, dan menancapkan konfigurasi opsional seperti parameter `"incognito": "spanning"` yang membolehkan fitur menjangkau *private-window/Incognito*.
+  The key *manifest* file that identifies this project to Google Chrome as an extension. It declares the description and release version, defines which *permissions* the extension requests (e.g. `cookies`, `storage`, `tabs`), points the *Service Worker* entry to `background.js`, and sets optional configuration such as `"incognito": "spanning"` which lets the extension work in *private/Incognito* windows.
 
 - **`background.js`**
-  Penengah dan motor utama proyek. Berisikan satu-satunya perantara untuk mendengarkan panggilan aksi (*event listener switch/case*) yang dilemparkan oleh `popup.js` via payload pesan (`SAVE_SESSION`, `LOAD_SESSION`, `DELETE_SESSION`, `CLEAR_COOKIES`). Ia tidak mengatur antarmuka, melainkan mengorkestrasi alur antara Tab yang sedang aktif dengan pengambilan data menggunakan `cookieManager` lalu mendorong konversinya menjadi data pasif pada `storageManager`.
+  The orchestrator and main engine of the project. It contains the single message listener (an action *switch/case*) for requests sent by `popup.js` via message payloads (`SAVE_SESSION`, `LOAD_SESSION`, `DELETE_SESSION`, `CLEAR_CURRENT_COOKIES`, `GET_ALL_SESSIONS`, `GET_STORAGE_INFO`). It does not manage the UI; instead it orchestrates the flow between the active tab and data retrieval through `cookieManager`, then persists the result via `storageManager`.
 
-### Folder `popup/`
+### `popup/` Folder
 - **`popup.html`**
-  Berkas HTML sederhana yang merepresentasikan halaman dasar (kontainer *layout* dan perwajahan utama *box-sizing*) untuk layar panel *popup*. Mencakup segmen elemen untuk bagian Header input penyimpanan sesi, bagian List Box untuk tampilan kartu domain, dan layar detil tampilan per nama domain.
+  A simple HTML file representing the base page (the *layout* container and main *box-sizing*) for the popup panel. It includes the header section for session-save input, the list box for domain cards, and the per-domain detail view.
 
 - **`popup.css`**
-  File perwajahan komponen *styling*. Ekstensi mengadopsi tema kelam elegan yang ditata dengan teknik modern *CSS Variables*, *Flexbox Layouts*, hingga mikroskopik *transition hovers* guna memberikan rasa desain UI yang premium tanpa harus bergantung pada *framework* kelas berat eksternal layaknya *Tailwind* ataupun *Bootstrap*.
+  The component styling file. The extension uses an elegant dark theme built with modern *CSS Variables*, *Flexbox* layouts, and subtle *hover transitions* to deliver a premium UI feel without depending on a heavy external *framework* like *Tailwind* or *Bootstrap*.
 
 - **`popup.js`**
-  File penggerak UI eksklusif (*Frontend logic*). Tugasnya adalah memanipulasi *DOM* (*Document Object Model*) pada `.html` di atas agar tampil responsif menyesuaikan isian *database* aslinya. Beberapa logikanya:
-  - Mengambil data dengan menyebar pesan *broadcast* ke `background.js` (dengan *async Promise Helper*).
-  - Mengkalkulasikan dan *mengelompokkan (grouping)* tiap sesi yang disimpan apabila sesinya memiliki URL (*host/port*) sasaran yang sama agar tak nampak tumpang-tindih.
-  - Menghapus pesan ralat dan menetapkan porsi status memuat (*loading state/disabled buttons*).
-  - Merender iterasi dari koleksi susunan kartu komponen dinamis dengan menggunakan API peramban asli (`document.createElement()`).
+  The dedicated UI driver (*frontend logic*). Its job is to manipulate the *DOM* of the `.html` above so it reflects the real *database* content responsively. Its main responsibilities:
+  - Fetch data by sending *broadcast* messages to `background.js` (via an *async Promise helper*).
+  - Calculate and *group* saved sessions that share the same target URL (*host/port*) so they don't appear duplicated.
+  - Render error messages and manage *loading state / disabled buttons*.
+  - Render the dynamic card components using native browser APIs (`document.createElement()`).
 
-### Folder `utils/`
+### `utils/` Folder
 - **`cookieManager.js`**
-  Rangkuman pembantu (sebuah *Helper Library*) utilitas yang mengisolasi dan mendetailkan setiap trik ekstraksi, restorasi, maupun injeksi API *cookies* bawaan dari Chrome.
-  Berfungsi mengumpulkan kepingan-kepingan parameter, mengabaikan filter nama khusus (*e.g.* reCAPTCHA, CloudFlare rules), menghapus format yang tabrakan (mengatasi protokol SSL maupun awalan/prefix keamanan unik dari `__Host-` dan `__Secure-`), hingga pembersihan pemotongan *port-number* tatkala sedang membungkus permintaan kepada sistem inti pelacak cookies-storage browser. Modul inilah tulang-punggung kelancaran dari pengambilan informasi login Anda.
+  A *helper library* that isolates and details every trick for cookie extraction, restoration, and injection via Chrome's native cookies API.
+  It collects cookie parameters, ignores specific name patterns (e.g. reCAPTCHA, Cloudflare rules), handles colliding formats (resolving SSL protocol and the unique `__Host-` / `__Secure-` security prefixes), and strips the *port number* when wrapping requests to the browser's cookie store. This module is the backbone of reliable login capture.
 
 - **`storageManager.js`**
-  Pembantu sekunder pendamping `chrome.storage.local`. 
-  Lantaran API basis data bawaan `storage` milik Chromium berskala asinkronous mutlak yang dapat mengacaukan hasil saat proses penulisan bersamaan berulang kali diakses secara sewenang-wenang (layaknya tipe eksekusi *racing conditions* pada objek besar), modul ini memperhalus metodologinya menjadi pola terarah (*Read-modify-write pattern*): yaitu dengan memanggil semua objek utuh terlebih dahulu -> Menyortir/memodifikasi baris nilai yang spesifik -> Menulis ulang keseluruhannya ke database secara terisolasi tanpa menggangu elemen milik sesi domain orang lain.
+  A companion helper around `chrome.storage.local`.
+  Because Chromium's native `storage` API is fully asynchronous — which can corrupt results during repeated concurrent writes (*race conditions* on large objects) — this module refines the approach into a directed *read-modify-write pattern*: read the whole object first → sort/modify the specific value → write the entire object back in isolation without disturbing other domains' session data.
